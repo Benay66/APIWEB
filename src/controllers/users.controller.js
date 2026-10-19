@@ -51,7 +51,7 @@ const loginUser = async (req, res) => {
 	    const user = result.recordset[0];
 	    const esValida = verifyPassword(password, user.password);
             if (esValida) {
-                res.json({ message: 'Login exitoso', success: true });
+                res.json({ message: 'Login exitoso', success: true, id: user.id});
             } else {
                 res.status(401).json({ message: 'Contraseña incorrecta', success: false });
             }
@@ -63,9 +63,45 @@ const loginUser = async (req, res) => {
     }
 };
 
+const getUserById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const pool = await getConnection();
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .query('SELECT * FROM Users WHERE id = @id');
+        
+        if (result.recordset.length > 0) {
+            res.json(result.recordset[0]);
+        } else {
+            res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+const updateUserScore = async (req, res) => {
+    const { id } = req.params;
+    const { points } = req.body;
+    try {
+        const pool = await getConnection();
+        await pool.request()
+            .input('id', sql.Int, id)
+            .input('points', sql.Int, points)
+            .query('UPDATE Users SET points = points + @points WHERE id = @id'); 
+        
+        res.json({ message: 'Puntaje actualizado exitosamente', success: true });
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 
 module.exports = {
     getUsers,
     createUser,
-    loginUser
+    loginUser,
+    getUserById,
+    updateUserScore
 };
